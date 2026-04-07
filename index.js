@@ -3,11 +3,17 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
+
+// 🔥 IMPORTANT pour Azure
 const PORT = process.env.PORT || 3000;
+
+// Fichier JSON
 const FILE = path.join(__dirname, "visits.json");
 
+// Mutex simple
 let lock = false;
 
+// Lire compteur
 function readCounter() {
   try {
     if (!fs.existsSync(FILE)) {
@@ -19,6 +25,8 @@ function readCounter() {
     return 0;
   }
 }
+
+// Écrire compteur
 function writeCounter(count) {
   try {
     fs.writeFileSync(FILE, JSON.stringify({ count }, null, 2));
@@ -26,6 +34,8 @@ function writeCounter(count) {
     console.error("Erreur écriture JSON:", err);
   }
 }
+
+// Route principale
 app.get("/", async (req, res) => {
   while (lock) await new Promise(r => setTimeout(r, 10));
   lock = true;
@@ -38,7 +48,6 @@ app.get("/", async (req, res) => {
     const clientIP =
       req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
-    
     const hostname = req.hostname;
     const port = req.socket.localPort;
     const serverIP = req.socket.localAddress;
@@ -65,4 +74,7 @@ app.get("/", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// 🔥 CORRECTION CRITIQUE POUR AZURE
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+});

@@ -1,6 +1,7 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const FILE = path.join(__dirname, "visits.json");
@@ -9,7 +10,9 @@ let lock = false;
 
 function readCounter() {
   try {
-    if (!fs.existsSync(FILE)) fs.writeFileSync(FILE, JSON.stringify({ count: 0 }));
+    if (!fs.existsSync(FILE)) {
+      fs.writeFileSync(FILE, JSON.stringify({ count: 0 }));
+    }
     return JSON.parse(fs.readFileSync(FILE)).count;
   } catch (err) {
     console.error("Erreur lecture JSON:", err);
@@ -28,16 +31,41 @@ function writeCounter(count) {
 app.get("/", async (req, res) => {
   while (lock) await new Promise(r => setTimeout(r, 10));
   lock = true;
+
   try {
     let count = readCounter();
     count++;
     writeCounter(count);
-    const clientIP = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-    res.send(`<h2>Compteur de visites</h2><p>Nombre de visites : ${count}</p><p>IP client : ${clientIP}</p>`);
+
+    // ✅ Informations client
+    const clientIP =
+      req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+
+    // ✅ Informations serveur (AJOUTÉ)
+    const hostname = req.hostname;
+    const port = req.socket.localPort;
+    const serverIP = req.socket.localAddress;
+
+    res.send(`
+      <h2>Compteur de visites</h2>
+      <p><strong>Nombre de visites :</strong> ${count}</p>
+
+      <hr>
+
+      <h3>Informations serveur</h3>
+      <p><strong>Hostname :</strong> ${hostname}</p>
+      <p><strong>Port :</strong> ${port}</p>
+      <p><strong>IP serveur :</strong> ${serverIP}</p>
+
+      <hr>
+
+      <h3>Informations client</h3>
+      <p><strong>IP client :</strong> ${clientIP}</p>
+    `);
+
   } finally {
     lock = false;
   }
 });
 
-// ✅ Lancement du serveur **ici seulement**
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

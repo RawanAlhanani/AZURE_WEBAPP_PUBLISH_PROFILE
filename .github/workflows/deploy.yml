@@ -1,6 +1,5 @@
-name: Deploy Node.js JSON Counter
+name: Build and Deploy Container to Azure
 
-# Déclenche le workflow à chaque push sur la branche main
 on:
   push:
     branches:
@@ -11,28 +10,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Récupérer le code du repo
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v3
 
-      # 2️⃣ Installer Node.js 24
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Login to Azure
+        uses: azure/login@v1
         with:
-          node-version: '24'
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # 3️⃣ Installer les dépendances
-      - name: Install npm dependencies
-        run: npm install
+      - name: Login to ACR
+        run: |
+          echo ${{ secrets.ACR_PASSWORD }} | docker login ${{ secrets.ACR_LOGIN_SERVER }} \
+          -u ${{ secrets.ACR_USERNAME }} --password-stdin
 
-      # 4️⃣ Créer un zip du projet
-      - name: Zip app
-        run: zip -r app.zip .
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/node-app:latest .
 
-      # 5️⃣ Déployer sur Azure App Service via Publish Profile
+      - name: Push Docker image to ACR
+        run: docker push ${{ secrets.ACR_LOGIN_SERVER }}/node-app:latest
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: app.zip
+          images: ${{ secrets.ACR_LOGIN_SERVER }}/node-app:latest

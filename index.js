@@ -19,7 +19,6 @@ function readCounter() {
     return 0;
   }
 }
-
 function writeCounter(count) {
   try {
     fs.writeFileSync(FILE, JSON.stringify({ count }, null, 2));
@@ -27,7 +26,6 @@ function writeCounter(count) {
     console.error("Erreur écriture JSON:", err);
   }
 }
-
 app.get("/", async (req, res) => {
   while (lock) await new Promise(r => setTimeout(r, 10));
   lock = true;
@@ -37,11 +35,10 @@ app.get("/", async (req, res) => {
     count++;
     writeCounter(count);
 
-    // ✅ Informations client
     const clientIP =
       req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
-    // ✅ Informations serveur (AJOUTÉ)
+    
     const hostname = req.hostname;
     const port = req.socket.localPort;
     const serverIP = req.socket.localAddress;
